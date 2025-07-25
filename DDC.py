@@ -108,14 +108,15 @@ def test_ddcnet(model, target_loader):
     test_loss = 0
     correct = 0
 
-    with torch.no_grad():
-        for data, target in target_loader:
-            if cuda:
-                data, target = data.cuda(), target.cuda()
-            target_preds, _ = model(data, data)
-            test_loss += clf_criterion(target_preds, target).item()
-            pred = target_preds.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
+with torch.no_grad():
+    for data, target in target_loader:
+        if cuda:
+            data, target = data.cuda(), target.cuda()
+        target_preds, _ = model(data, data)
+        test_loss += clf_criterion(target_preds, target).item()
+        pred = target_preds.argmax(dim=1, keepdim=True)
+        correct += pred.eq(target.view_as(pred)).sum().item()
+
 
     test_loss /= len(target_loader)
     print('{} set: Average classification loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
@@ -137,7 +138,7 @@ if __name__ == '__main__':
 
     source_loader = dataloader.load_training(ROOT_PATH, SOURCE_NAME, BATCH_SIZE)
     target_train_loader = dataloader.load_training(ROOT_PATH, TARGET_NAME, BATCH_SIZE)
-    target_test_loader = dataloader.load_testing(ROOT_PATH, TARGET_NAME, BATCH_SIZE)
+    target_loader = dataloader.load_testing(ROOT_PATH, TARGET_NAME, BATCH_SIZE)
     print('Load data complete')
 
     ddcnet = model.DCCNet(num_classes=31)
@@ -152,4 +153,4 @@ if __name__ == '__main__':
     for epoch in range(1, TRAIN_EPOCHS + 1):
         print(f'Train Epoch {epoch}:')
         train_ddcnet(epoch, ddcnet, learning_rate, source_loader, target_train_loader)
-        correct = test_ddcnet(ddcnet, target_test_loader)
+        correct = test_ddcnet(ddcnet, target_loader)
