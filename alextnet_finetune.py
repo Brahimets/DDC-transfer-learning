@@ -57,7 +57,7 @@ def train_alexnet(epoch, model, learning_rate, source_loader):
     total_loss = 0
     clf_criterion = nn.CrossEntropyLoss()
 
-    for i in range(1, num_iter):
+    for i in range(num_iter):
         source_data, source_label = iter_source.next()
         if cuda:
             source_data, source_label = source_data.cuda(), source_label.cuda()
