@@ -1,0 +1,10 @@
+# Ignore macOS and other OS artifacts
+.DS_Store
+Thumbs.db
+*.swp
+
+# Ignore database files and large datasets
+*.db
+
+# Ignore any dataset cache or large dataset directories
+/data/
