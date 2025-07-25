@@ -60,7 +60,7 @@ def train_ddcnet(epoch, model, learning_rate, source_loader, target_loader):
     total_loss = 0
     clf_criterion = nn.CrossEntropyLoss()
 
-    for i in range(1, num_iter):
+    for i in range(num_iter):
         source_data, source_label = iter_source.next()
         target_data, _ = iter_target.next()
         if i % len(target_loader) == 0:
