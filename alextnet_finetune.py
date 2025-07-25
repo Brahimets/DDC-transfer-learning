@@ -13,7 +13,6 @@ import dataloader
 
 from torch import nn
 from torch import optim
-from torch.autograd import Variable
 
 cuda = torch.cuda.is_available()
 
@@ -62,16 +61,15 @@ def train_alexnet(epoch, model, learning_rate, source_loader):
         source_data, source_label = iter_source.next()
         if cuda:
             source_data, source_label = source_data.cuda(), source_label.cuda()
-        source_data, source_label = Variable(source_data), Variable(source_label)
 
         optimizer.zero_grad()
 
         source_preds = model(source_data)
-        preds = source_preds.data.max(1, keepdim=True)[1]
-        correct += preds.eq(source_label.data.view_as(preds)).sum()
+        preds = source_preds.argmax(dim=1, keepdim=True)
+        correct += preds.eq(source_label.view_as(preds)).sum().item()
 
         loss = clf_criterion(source_preds, source_label)
-        total_loss += loss
+        total_loss += loss.item()
 
         loss.backward()
         optimizer.step()
@@ -79,13 +77,13 @@ def train_alexnet(epoch, model, learning_rate, source_loader):
         if i % log_interval == 0:
             print('Train Epoch {}: [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, i * len(source_data), len(source_loader) * BATCH_SIZE,
-                100. * i / len(source_loader), loss.data[0]))
+                100. * i / len(source_loader), loss.item()))
 
     total_loss /= len(source_loader)
     acc_train = float(correct) * 100. / (len(source_loader) * BATCH_SIZE)
 
     print('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)'.format(
-        SOURCE_NAME, total_loss.data[0], correct, len(source_loader.dataset), acc_train))
+        SOURCE_NAME, total_loss, correct, len(source_loader.dataset), acc_train))
 
 
 def test_alexnet(model, target_loader):
@@ -102,18 +100,20 @@ def test_alexnet(model, target_loader):
     test_loss = 0
     correct = 0
 
-    for data, target in target_loader:
-        if cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data, volatile=True), Variable(target)
-        target_preds = model(data)
-        test_loss += clf_criterion(target_preds, target) # sum up batch loss
-        pred = target_preds.data.max(1)[1] # get the index of the max log-probability
-        correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+
+    with torch.no_grad():
+        for data, target in target_loader:
+            if cuda:
+                data, target = data.cuda(), target.cuda()
+            target_preds = model(data)
+            test_loss += clf_criterion(target_preds, target).item()
+            pred = target_preds.argmax(dim=1, keepdim=True)
+            correct += pred.eq(target.view_as(pred)).sum().item()
+
 
     test_loss /= len(target_loader)
     print('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        TARGET_NAME, test_loss.data[0], correct, len(target_loader.dataset),
+        TARGET_NAME, test_loss, correct, len(target_loader.dataset),
         100. * correct / len(target_loader.dataset)))
     return correct
 

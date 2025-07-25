@@ -13,7 +13,6 @@ import dataloader
 
 from torch import nn
 from torch import optim
-from torch.autograd import Variable
 
 cuda = torch.cuda.is_available()
 
@@ -70,18 +69,15 @@ def train_ddcnet(epoch, model, learning_rate, source_loader, target_loader):
             source_data, source_label = source_data.cuda(), source_label.cuda()
             target_data = target_data.cuda()
 
-        source_data, source_label = Variable(source_data), Variable(source_label)
-        target_data = Variable(target_data)
-
         optimizer.zero_grad()
 
         source_preds, mmd_loss = model(source_data, target_data)
-        preds = source_preds.data.max(1, keepdim=True)[1]
+        preds = source_preds.argmax(dim=1, keepdim=True)
 
-        correct += preds.eq(source_label.data.view_as(preds)).sum()
+        correct += preds.eq(source_label.view_as(preds)).sum().item()
         clf_loss = clf_criterion(source_preds, source_label)
         loss = clf_loss + 0.25 * mmd_loss
-        total_loss += clf_loss
+        total_loss += clf_loss.item()
 
         loss.backward()
         optimizer.step()
@@ -89,13 +85,13 @@ def train_ddcnet(epoch, model, learning_rate, source_loader, target_loader):
         if i % log_interval == 0:
             print('Train Epoch {}: [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tsoft_Loss: {:.6f}\tmmd_Loss: {:.6f}'.format(
                 epoch, i * len(source_data), len(source_loader) * BATCH_SIZE,
-                100. * i / len(source_loader), loss.data[0], clf_loss.data[0], mmd_loss.data[0]))
+                100. * i / len(source_loader), loss.item(), clf_loss.item(), mmd_loss.item()))
 
     total_loss /= len(source_loader)
     acc_train = float(correct) * 100. / (len(source_loader) * BATCH_SIZE)
 
     print('{} set: Average classification loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)'.format(
-        SOURCE_NAME, total_loss.data[0], correct, len(source_loader.dataset), acc_train))
+        SOURCE_NAME, total_loss, correct, len(source_loader.dataset), acc_train))
 
 
 def test_ddcnet(model, target_loader):
@@ -112,18 +108,19 @@ def test_ddcnet(model, target_loader):
     test_loss = 0
     correct = 0
 
+with torch.no_grad():
     for data, target in target_loader:
         if cuda:
             data, target = data.cuda(), target.cuda()
-        data, target = Variable(data, volatile=True), Variable(target)
         target_preds, _ = model(data, data)
-        test_loss += clf_criterion(target_preds, target) # sum up batch loss
-        pred = target_preds.data.max(1)[1] # get the index of the max log-probability
-        correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+        test_loss += clf_criterion(target_preds, target).item()
+        pred = target_preds.argmax(dim=1, keepdim=True)
+        correct += pred.eq(target.view_as(pred)).sum().item()
+
 
     test_loss /= len(target_loader)
     print('{} set: Average classification loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        TARGET_NAME, test_loss.data[0], correct, len(target_loader.dataset),
+        TARGET_NAME, test_loss, correct, len(target_loader.dataset),
         100. * correct / len(target_loader.dataset)))
     return correct
 
