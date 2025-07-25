@@ -108,21 +108,20 @@ def test_ddcnet(model, target_loader):
     test_loss = 0
     correct = 0
 
-with torch.no_grad():
-    for data, target in target_loader:
-        if cuda:
-            data, target = data.cuda(), target.cuda()
-        target_preds, _ = model(data, data)
-        test_loss += clf_criterion(target_preds, target).item()
-        pred = target_preds.argmax(dim=1, keepdim=True)
-        correct += pred.eq(target.view_as(pred)).sum().item()
+    with torch.no_grad():
+        for data, target in target_loader:
+            if cuda:
+                data, target = data.cuda(), target.cuda()
+            target_preds, _ = model(data, data)
+            test_loss += clf_criterion(target_preds, target).item()
+            pred = target_preds.argmax(dim=1, keepdim=True)
+            correct += pred.eq(target.view_as(pred)).sum().item()
 
-
-    test_loss /= len(target_loader)
-    print('{} set: Average classification loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        TARGET_NAME, test_loss, correct, len(target_loader.dataset),
-        100. * correct / len(target_loader.dataset)))
-    return correct
+        test_loss /= len(target_loader)
+        print('{} set: Average classification loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+            TARGET_NAME, test_loss, correct, len(target_loader.dataset),
+            100. * correct / len(target_loader.dataset)))
+        return correct
 
 if __name__ == '__main__':
 
