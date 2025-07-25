@@ -102,7 +102,7 @@ def test_alexnet(model, target_loader):
     test_loss = 0
     correct = 0
 
-    for data, target in target_test_loader:
+    for data, target in target_loader:
         if cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data, volatile=True), Variable(target)
@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     source_loader = dataloader.load_training(ROOT_PATH, SOURCE_NAME, BATCH_SIZE)
     target_train_loader = dataloader.load_training(ROOT_PATH, TARGET_NAME, BATCH_SIZE)
-    target_test_loader = dataloader.load_testing(ROOT_PATH, TARGET_NAME, BATCH_SIZE)
+    target_loader = dataloader.load_testing(ROOT_PATH, TARGET_NAME, BATCH_SIZE)
     print('Load data complete')
 
     alexnet = model.Alexnet_finetune(num_classes=31)
@@ -147,4 +147,4 @@ if __name__ == '__main__':
     for epoch in range(1, TRAIN_EPOCHS + 1):
         print(f'Train Epoch {epoch}:')
         train_alexnet(epoch, alexnet, learning_rate, source_loader)
-        correct = test_alexnet(alexnet, target_test_loader)
+        correct = test_alexnet(alexnet, target_loader)
